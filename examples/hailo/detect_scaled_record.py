@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from picamera2 import MappedArray, Picamera2, Preview
 from picamera2.devices import Hailo
+from picamera2.encoders import H264Encoder
 import signal
 import sys
 
@@ -84,6 +85,8 @@ def signal_handler(sig, frame):
     print("Exiting...")
     if video_writer is not None:
         video_writer.release()  # Release the video writer before exiting
+    picam2.stop_recording()
+    picam2.stop()
     sys.exit(0)
 
 if __name__ == "__main__":
@@ -96,6 +99,8 @@ if __name__ == "__main__":
                         help="Path to a text file containing labels.")
     parser.add_argument("-s", "--score_thresh", type=float, default=0.5,
                         help="Score threshold, must be a float between 0 and 1.")
+    parser.add_argument("-q", "--quality", default="Lq",
+                        help="Hq or Lq")
     parser.add_argument("-o", "--output", default="detect_annotated_output.mp4",
                         help="Path to the output video file.")
     args = parser.parse_args()
@@ -112,9 +117,14 @@ if __name__ == "__main__":
             config = picam2.create_preview_configuration(main, lores=lores, controls=controls)
             picam2.configure(config)
             picam2.start_preview(Preview.QTGL, x=0, y=0, width=800, height=480)
-            # Initialize the VideoWriter object
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
-            video_writer = cv2.VideoWriter(args.output, fourcc, 12.0, (video_w, video_h))
+            if(args.quality == "Lq"):
+                # Initialize the VideoWriter object
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
+                video_writer = cv2.VideoWriter(args.output, fourcc, 12.0, (video_w, video_h))
+            elif(args.quality == "Hq"):
+                encoder = H264Encoder(bitrate=10000000)
+                output = args.output
+                picam2.start_recording(encoder, output)
             picam2.start()
 
             # Set pre-callback for drawing objects
@@ -125,9 +135,8 @@ if __name__ == "__main__":
                 resized_frame = resize_and_pad(frame, target_size=(640, 640))
                 results = hailo.run(resized_frame)
                 detections = extract_detections(results[0], video_w, video_h, 640, 640, class_names, args.score_thresh)
-
-                frame_rgb = picam2.capture_array('main')
-                frame_rgb = frame_rgb[:, :, [0, 1, 2]] 
-
-                video_writer.write(frame_rgb) 
+                if(args.quality == "Lq"):
+                    frame_rgb = picam2.capture_array('main')
+                    frame_rgb = frame_rgb[:, :, [0, 1, 2]] 
+                    video_writer.write(frame_rgb) 
 
