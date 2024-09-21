@@ -99,7 +99,7 @@ if __name__ == "__main__":
                         help="Path to a text file containing labels.")
     parser.add_argument("-s", "--score_thresh", type=float, default=0.5,
                         help="Score threshold, must be a float between 0 and 1.")
-    parser.add_argument("-q", "--quality", default="Lq",
+    parser.add_argument("-r", "--record", default="No",
                         help="Hq or Lq")
     parser.add_argument("-o", "--output", default="detect_annotated_output.mp4",
                         help="Path to the output video file.")
@@ -117,11 +117,11 @@ if __name__ == "__main__":
             config = picam2.create_preview_configuration(main, lores=lores, controls=controls)
             picam2.configure(config)
             picam2.start_preview(Preview.QTGL, x=0, y=0, width=800, height=480)
-            if(args.quality == "Lq"):
+            if(args.record == "Lq"):
                 # Initialize the VideoWriter object
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
                 video_writer = cv2.VideoWriter(args.output, fourcc, 12.0, (video_w, video_h))
-            elif(args.quality == "Hq"):
+            elif(args.record == "Hq"):
                 encoder = H264Encoder(bitrate=10000000)
                 output = args.output
                 picam2.start_recording(encoder, output)
@@ -135,7 +135,7 @@ if __name__ == "__main__":
                 resized_frame = resize_and_pad(frame, target_size=(640, 640))
                 results = hailo.run(resized_frame)
                 detections = extract_detections(results[0], video_w, video_h, 640, 640, class_names, args.score_thresh)
-                if(args.quality == "Lq"):
+                if(args.record == "Lq"):
                     frame_rgb = picam2.capture_array('main')
                     frame_rgb = frame_rgb[:, :, [0, 1, 2]] 
                     video_writer.write(frame_rgb) 
