@@ -114,6 +114,8 @@ def signal_handler(sig, frame):
     print("Exiting...")
     if video_writer is not None:
         video_writer.release()  # Release the video writer before exiting
+    picam2.stop_recording()
+    picam2.stop()
     sys.exit(0)
 
 
@@ -126,6 +128,7 @@ if __name__ == "__main__":
     # Define argument parser for model file
     parser = argparse.ArgumentParser(description='Pose estimation using Hailo')
     parser.add_argument('-m', '--model', help="HEF file path", default="/usr/share/hailo-models/yolov8s_pose_h8l_pi.hef")
+    parser.add_argument("-r", "--record", default="No", help="Hq or Lq")
     parser.add_argument("-o", "--output", default="pose_annotated_output.mp4", help="Path to the output video file.")
     args = parser.parse_args()
     signal.signal(signal.SIGINT, signal_handler)
@@ -147,6 +150,14 @@ if __name__ == "__main__":
             # Initialize the VideoWriter object
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
             video_writer = cv2.VideoWriter(args.output, fourcc, 8.5, (video_w, video_h))
+            if(args.record == "Lq"):
+                # Initialize the VideoWriter object
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
+                video_writer = cv2.VideoWriter(args.output, fourcc, 12.0, (video_w, video_h))
+            elif(args.record == "Hq"):
+                encoder = H264Encoder(bitrate=10000000)
+                output = args.output
+                picam2.start_recording(encoder, output)
             picam2.start()
             picam2.pre_callback = draw_predictions
 
@@ -161,8 +172,7 @@ if __name__ == "__main__":
 
                 # Process the predictions
                 last_predictions = postproc_yolov8_pose(1, raw_detections, model_size)
-
-                frame_rgb = picam2.capture_array('main')
-                frame_rgb = frame_rgb[:, :, [0, 1, 2]]
-
-                video_writer.write(frame_rgb)
+                if(args.record == "Lq"):
+                    frame_rgb = picam2.capture_array('main')
+                    frame_rgb = frame_rgb[:, :, [0, 1, 2]] 
+                    video_writer.write(frame_rgb) 
