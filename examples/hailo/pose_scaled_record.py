@@ -147,9 +147,6 @@ if __name__ == "__main__":
             config = picam2.create_video_configuration(main, lores=lores, controls=controls)
             picam2.configure(config)
             picam2.start_preview(Preview.QTGL, x=0, y=0, width=800, height=400)
-            # Initialize the VideoWriter object
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
-            video_writer = cv2.VideoWriter(args.output, fourcc, 8.5, (video_w, video_h))
             if(args.record == "Lq"):
                 # Initialize the VideoWriter object
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
